@@ -45,7 +45,7 @@ export const useSpeech = () => {
             if (SpeechRecognition) {
                 const recognition = new SpeechRecognition();
                 recognition.continuous = true;
-                recognition.interimResults = false; // Changed to false for stability
+                recognition.interimResults = false;
                 recognition.lang = 'en-US';
 
                 recognition.onstart = () => {
@@ -87,13 +87,6 @@ export const useSpeech = () => {
                 recognitionRef.current = recognition;
             } else {
                 setError("Browser does not support Speech Recognition");
-            }
-
-            if (window.speechSynthesis) {
-                synthesisRef.current = window.speechSynthesis;
-                const loadVoices = () => setVoices(window.speechSynthesis.getVoices());
-                window.speechSynthesis.onvoiceschanged = loadVoices;
-                loadVoices();
             }
         }
     }, []);
@@ -152,23 +145,61 @@ export const useSpeech = () => {
         setIsListening(false);
     }, []);
 
-    const speak = useCallback((text, onEnd) => {
-        if (synthesisRef.current) {
-            synthesisRef.current.cancel();
-            if (isListeningRef.current) stopListening();
+    // Reliable voice loading
+    useEffect(() => {
+        const loadVoices = () => {
+            const vs = window.speechSynthesis.getVoices();
+            if (vs.length > 0) {
+                setVoices(vs);
+            }
+        };
 
-            const utterance = new SpeechSynthesisUtterance(text);
-            setIsSpeaking(true);
-
-            const voice = voices.find(v => v.name.includes('Google US English')) || voices[0];
-            if (voice) utterance.voice = voice;
-
-            utterance.onend = () => {
-                setIsSpeaking(false);
-                if (onEnd) onEnd();
-            };
-            synthesisRef.current.speak(utterance);
+        if (typeof window !== 'undefined' && window.speechSynthesis) {
+            loadVoices();
+            window.speechSynthesis.onvoiceschanged = loadVoices;
         }
+    }, []);
+
+    const speak = useCallback((text, onEnd) => {
+        if (!window.speechSynthesis) return;
+
+        // Cancel previous speech to prevent queue buildup
+        window.speechSynthesis.cancel();
+
+        if (isListeningRef.current) stopListening();
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        setIsSpeaking(true);
+
+        // Robust Voice Selection
+        let voice = null;
+        if (voices.length > 0) {
+            // Priority 1: Google US English
+            voice = voices.find(v => v.name.includes('Google US English'));
+            // Priority 2: Any US English
+            if (!voice) voice = voices.find(v => v.lang === 'en-US');
+            // Priority 3: Any English
+            if (!voice) voice = voices.find(v => v.lang.startsWith('en'));
+            // Fallback: First available
+            if (!voice) voice = voices[0];
+
+            if (voice) utterance.voice = voice;
+        }
+
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+
+        utterance.onend = () => {
+            setIsSpeaking(false);
+            if (onEnd) onEnd();
+        };
+
+        utterance.onerror = (e) => {
+            console.error("TTS Error:", e);
+            setIsSpeaking(false);
+        };
+
+        window.speechSynthesis.speak(utterance);
     }, [voices, stopListening]);
 
     return {
