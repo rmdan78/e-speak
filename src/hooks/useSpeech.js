@@ -23,6 +23,11 @@ export const useSpeech = () => {
     // Get Audio Devices
     useEffect(() => {
         const getDevices = async () => {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                setError("Microphone not supported. Check connection is HTTPS.");
+                return;
+            }
+
             try {
                 await navigator.mediaDevices.getUserMedia({ audio: true });
                 const devs = await navigator.mediaDevices.enumerateDevices();
@@ -32,7 +37,14 @@ export const useSpeech = () => {
                     setSelectedDeviceId(audioInputs[0].deviceId);
                 }
             } catch (e) {
-                setError("Microphone permission denied");
+                console.error("Mic Error:", e);
+                if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+                    setError("Microphone permission denied. Please enable it in browser settings.");
+                } else if (e.name === 'NotFoundError' || e.name === 'DevicesNotFoundError') {
+                    setError("No microphone found.");
+                } else {
+                    setError("Microphone error: " + e.message);
+                }
             }
         };
         getDevices();
