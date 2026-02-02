@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node download_models.js && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
