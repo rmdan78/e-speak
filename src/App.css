@@ -184,7 +184,7 @@ html,
     overflow: hidden;
     width: 100%;
     display: flex;
-    flexDirection: column;
+    flex-direction: column;
     padding-top: 1rem !important;
   }
 
