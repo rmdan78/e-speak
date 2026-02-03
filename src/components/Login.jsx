@@ -68,7 +68,7 @@ const Login = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'transparent', // Transparent to show Vanta Background
+            background: 'linear-gradient(135deg, #0d1117 0%, #161b22 40%, #1a2332 70%, #0d1117 100%)',
             position: 'relative',
             overflow: 'hidden',
         }}>
