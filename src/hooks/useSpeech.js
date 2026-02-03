@@ -67,21 +67,26 @@ export const useSpeech = () => {
             if (SpeechRecognition) {
                 const recognition = new SpeechRecognition();
                 recognition.continuous = true;
-                recognition.interimResults = false;
+                recognition.interimResults = true; // Enable interim results for real-time feedback
                 recognition.lang = 'en-US';
+                recognition.maxAlternatives = 1;
 
                 recognition.onstart = () => {
                     console.log("Speech recognition started");
                     setIsListening(true);
-                    setError(null);
+                    setError("🎤 Listening... Speak now!");
                 };
 
                 recognition.onend = () => {
                     console.log("Speech recognition ended");
                     if (isListeningRef.current) {
-                        try { recognition.start(); } catch (e) { }
+                        // Auto-restart on mobile where it tends to stop
+                        setTimeout(() => {
+                            try { recognition.start(); } catch (e) { }
+                        }, 100);
                     } else {
                         setIsListening(false);
+                        setError(null);
                     }
                 };
 
@@ -101,11 +106,24 @@ export const useSpeech = () => {
                 };
 
                 recognition.onresult = (event) => {
-                    let text = '';
-                    for (let i = 0; i < event.results.length; i++) {
-                        text += event.results[i][0].transcript;
+                    let finalTranscript = '';
+                    let interimTranscript = '';
+
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const result = event.results[i];
+                        if (result.isFinal) {
+                            finalTranscript += result[0].transcript;
+                        } else {
+                            interimTranscript += result[0].transcript;
+                        }
                     }
-                    setTranscript(text);
+
+                    // Show whatever we have (final or interim)
+                    const displayText = finalTranscript || interimTranscript;
+                    if (displayText) {
+                        setTranscript(prev => finalTranscript ? prev + finalTranscript : displayText);
+                        setError(null); // Clear "Listening" message when we get speech
+                    }
                 };
 
                 recognitionRef.current = recognition;
