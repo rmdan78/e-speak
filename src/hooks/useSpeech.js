@@ -149,15 +149,24 @@ export const useSpeech = () => {
     };
 
     const startListening = useCallback(() => {
-        if (recognitionRef.current) {
-            setTranscript('');
-            setError(null);
-            isListeningRef.current = true;
-            try {
-                recognitionRef.current.start();
-                startVisualization();
-            } catch (e) {
-                console.error("Start error:", e);
+        if (!recognitionRef.current) {
+            setError("⚠️ Speech recognition not initialized. Try refreshing the page.");
+            return;
+        }
+
+        setTranscript('');
+        setError(null);
+        isListeningRef.current = true;
+
+        try {
+            recognitionRef.current.start();
+            startVisualization();
+        } catch (e) {
+            console.error("Start error:", e);
+            if (e.message?.includes('already started')) {
+                // Already running, ignore
+            } else {
+                setError(`🎤 Failed to start: ${e.message || 'Unknown error'}`);
             }
         }
     }, [selectedDeviceId]);
