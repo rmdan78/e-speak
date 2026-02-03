@@ -53,7 +53,17 @@ export const useSpeech = () => {
     // Setup Speech Recognition
     useEffect(() => {
         if (typeof window !== 'undefined') {
+            // Detect iOS (Safari has limited/no Web Speech API support)
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+            if (isIOS && isSafari) {
+                setError("⚠️ iOS Safari does not support speech recognition. Please use Chrome on Android or desktop.");
+                return;
+            }
+
             if (SpeechRecognition) {
                 const recognition = new SpeechRecognition();
                 recognition.continuous = true;
@@ -78,11 +88,13 @@ export const useSpeech = () => {
                 recognition.onerror = (event) => {
                     console.error("Speech Error:", event.error);
                     if (event.error === 'not-allowed') {
-                        setError("Microphone access denied");
+                        setError("🎤 Microphone access denied. Please enable in browser settings.");
                         isListeningRef.current = false;
                         setIsListening(false);
                     } else if (event.error === 'network') {
-                        setError("Network error - check your internet connection");
+                        setError("🌐 Network error - check your internet connection");
+                    } else if (event.error === 'service-not-allowed') {
+                        setError("⚠️ Speech recognition not available. Try Chrome browser.");
                     } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
                         setError(`Error: ${event.error}`);
                     }
@@ -98,7 +110,7 @@ export const useSpeech = () => {
 
                 recognitionRef.current = recognition;
             } else {
-                setError("Browser does not support Speech Recognition");
+                setError("⚠️ Browser does not support Speech Recognition. Please use Chrome.");
             }
         }
     }, []);
