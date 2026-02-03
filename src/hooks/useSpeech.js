@@ -185,7 +185,7 @@ export const useSpeech = () => {
         setInputVolume(0);
     };
 
-    const startListening = useCallback(() => {
+    const startListening = useCallback(async () => {
         // Debug for mobile
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
@@ -196,16 +196,28 @@ export const useSpeech = () => {
             return;
         }
 
+        // On mobile, first test if microphone is actually working
+        if (isMobile) {
+            try {
+                setError("🔌 Testing microphone...");
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                // Mic works! Stop the test stream
+                stream.getTracks().forEach(t => t.stop());
+                setError("✅ Microphone OK! Starting speech recognition...");
+            } catch (micError) {
+                setError(`❌ Microphone error: ${micError.message}`);
+                alert(`Microphone error: ${micError.message}`);
+                return;
+            }
+        }
+
         setTranscript('');
-        setError(null);
         isListeningRef.current = true;
 
         try {
             recognitionRef.current.start();
             startVisualization();
-            if (isMobile) {
-                setError("🎤 Listening on mobile... Speak now!");
-            }
+            setError(isMobile ? "🎤 Listening on mobile... Speak now!" : null);
         } catch (e) {
             console.error("Start error:", e);
             if (e.message?.includes('already started')) {
