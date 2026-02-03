@@ -79,10 +79,27 @@ export const useSpeech = () => {
                     setError("🎤 Listening... Speak now!");
                 };
 
+                // Debug: detect if audio is being captured
+                recognition.onaudiostart = () => {
+                    console.log("Audio capturing started");
+                    setError("🔊 Audio detected... Keep speaking!");
+                };
+
+                recognition.onsoundstart = () => {
+                    console.log("Sound detected");
+                    setError("🗣️ Sound detected... Processing...");
+                };
+
+                recognition.onspeechstart = () => {
+                    console.log("Speech detected");
+                    setError("💬 Speech detected... Processing...");
+                };
+
                 recognition.onend = () => {
                     console.log("Speech recognition ended");
                     if (isListeningRef.current) {
                         // Auto-restart on mobile where it tends to stop
+                        setError("🔄 Restarting listener...");
                         setTimeout(() => {
                             try { recognition.start(); } catch (e) { }
                         }, 100);
