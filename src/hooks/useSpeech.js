@@ -56,6 +56,7 @@ export const useSpeech = () => {
             // Detect iOS (Safari has limited/no Web Speech API support)
             const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
             const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -66,8 +67,9 @@ export const useSpeech = () => {
 
             if (SpeechRecognition) {
                 const recognition = new SpeechRecognition();
-                recognition.continuous = true;
-                recognition.interimResults = true; // Enable interim results for real-time feedback
+                // Disable continuous mode on mobile (causes issues on many Android devices)
+                recognition.continuous = !isMobile;
+                recognition.interimResults = true;
                 recognition.lang = 'en-US';
                 recognition.maxAlternatives = 1;
 
@@ -167,8 +169,13 @@ export const useSpeech = () => {
     };
 
     const startListening = useCallback(() => {
+        // Debug for mobile
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
         if (!recognitionRef.current) {
-            setError("⚠️ Speech recognition not initialized. Try refreshing the page.");
+            const msg = "⚠️ Speech recognition not initialized. Try refreshing the page.";
+            setError(msg);
+            if (isMobile) alert(msg);
             return;
         }
 
@@ -179,6 +186,9 @@ export const useSpeech = () => {
         try {
             recognitionRef.current.start();
             startVisualization();
+            if (isMobile) {
+                setError("🎤 Listening on mobile... Speak now!");
+            }
         } catch (e) {
             console.error("Start error:", e);
             if (e.message?.includes('already started')) {
